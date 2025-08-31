@@ -7,7 +7,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
 import java.util.Scanner;
 
 @Data
@@ -18,6 +20,7 @@ public class TicTacToeGame {
     private Scanner scanner = new Scanner(System.in);
     private Deque<Player> players = new ArrayDeque<>();
     private Player player1, player2;
+    private List<GameObserver> observers = new ArrayList<>();
 
     public void initializeGame(Player player1, Player player2) {
         this.player1 = player1;
@@ -25,6 +28,7 @@ public class TicTacToeGame {
         players.add(player1);
         players.add(player2);
         this.gameBoard = new Board(3);
+        addObserver(scoreCard);
     }
     public void printScoreBoard() {
         Pair<Integer,Integer> currentScore = scoreCard.getCurrentScore(player1, player2);
@@ -75,7 +79,7 @@ public class TicTacToeGame {
 
             boolean winner = isThereWinner(inputRow, inputColumn, player.getPlayingPiece().getPieceType());
             if(winner){
-                scoreCard.updateScore(player, player1, player2);
+                notifyObservers(player);
                 return player.getPlayerName();
             }
         }
@@ -121,5 +125,18 @@ public class TicTacToeGame {
         }
         return rowMatch || columnMatch || diagonalMatch || antiDiagonalMatch;
     }
-
+    
+    public void addObserver(GameObserver observer) {
+        observers.add(observer);
+    }
+    
+    public void removeObserver(GameObserver observer) {
+        observers.remove(observer);
+    }
+    
+    private void notifyObservers(Player winner) {
+        for (GameObserver observer : observers) {
+            observer.onGameEnd(winner, player1, player2);
+        }
+    }
 }

@@ -22,6 +22,7 @@ mvn compile exec:java -Dexec.mainClass="org.deepak.Main"
 - Input validation with error handling
 - Win detection (rows, columns, diagonals)
 - Structured logging with SLF4J
+- Observer pattern for automatic score updates
 - Normalized player matchups (A vs B = B vs A)
 
 ## How to Play
@@ -34,19 +35,21 @@ mvn compile exec:java -Dexec.mainClass="org.deepak.Main"
 ```
 src/main/java/org/deepak/
 ├── Main.java                 # Entry point with logging
-├── TicTacToeGame.java        # Game logic controller
+├── TicTacToeGame.java        # Game logic controller with Observer pattern
 └── dto/
     ├── Board.java            # Game board with bounds checking
+    ├── GameObserver.java     # Observer interface for game events
     ├── Player.java           # Player entity
     ├── PlayingPiece.java     # Game piece (X/O) with encapsulation
     ├── PieceType.java        # Enum for piece types
-    └── ScoreCard.java        # Score tracking with normalized keys
+    └── ScoreCard.java        # Score tracking observer with normalized keys
 ```
 
 ## Design Patterns
+- **Observer Pattern**: ScoreCard observes game events for automatic score updates
 - **Data Transfer Object (DTO)**: All game entities in `dto` package
 - **Enum Pattern**: `PieceType` for type safety
-- **Composition**: `TicTacToeGame` composes `Board`, `ScoreCard`, and `Player`
+- **Composition**: `TicTacToeGame` composes `Board` and manages observers
 - **Queue Pattern**: `Deque` for player turn management
 - **Normalized Keys**: ScoreCard treats "A vs B" same as "B vs A"
 
@@ -64,10 +67,14 @@ classDiagram
         -ScoreCard scoreCard
         -Scanner scanner
         -Deque~Player~ players
+        -List~GameObserver~ observers
         -Player player1, player2
         +initializeGame(Player, Player)
         +printScoreBoard()
         +startGame() String
+        +addObserver(GameObserver)
+        +removeObserver(GameObserver)
+        -notifyObservers(Player)
         -isThereWinner(int, int, PieceType) boolean
     }
     
@@ -89,10 +96,15 @@ classDiagram
         +getPieceType() PieceType
     }
     
+    class GameObserver {
+        <<interface>>
+        +onGameEnd(Player, Player, Player)
+    }
+    
     class ScoreCard {
         -HashMap~String, Pair~ playerScoreCard
         +getCurrentScore(Player, Player) Pair
-        +updateScore(Player, Player, Player)
+        +onGameEnd(Player, Player, Player)
         -getKey(Player, Player) String
     }
     
@@ -105,7 +117,8 @@ classDiagram
     Main --> TicTacToeGame
     TicTacToeGame --> Board
     TicTacToeGame --> Player
-    TicTacToeGame --> ScoreCard
+    TicTacToeGame --> GameObserver
+    ScoreCard ..|> GameObserver
     Player --> PlayingPiece
     PlayingPiece --> PieceType
     Board --> PlayingPiece
